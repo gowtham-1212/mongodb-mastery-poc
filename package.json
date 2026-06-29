@@ -1,0 +1,32 @@
+{
+  "name": "mongodb-mastery-poc",
+  "version": "1.0.0",
+  "description": "Production-grade MongoDB learning monorepo with three distinct Node.js frameworks",
+  "private": true,
+  "workspaces": [
+    "project-01-basic-crud",
+    "project-02-aggregation",
+    "project-03-indexing"
+  ],
+  "scripts": {
+    "setup": "npm install && npm run bootstrap",
+    "bootstrap": "npm run build --workspaces",
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "keywords": [
+    "mongodb",
+    "express",
+    "fastify",
+    "nestjs",
+    "typescript",
+    "learning",
+    "aggregation",
+    "indexing",
+    "operators"
+  ],
+  "author": "",
+  "license": "MIT"
+}
