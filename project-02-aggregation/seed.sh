@@ -86,8 +86,30 @@ const transactions = [
   }
 ];
 
+const transactionArchives = [
+  {
+    category: 'electronics',
+    totalAmount: 125.5,
+    transactionCount: 1,
+    archivedAt: new Date('2024-06-10T09:00:00Z')
+  },
+  {
+    category: 'books',
+    totalAmount: 89.99,
+    transactionCount: 1,
+    archivedAt: new Date('2024-06-11T10:00:00Z')
+  },
+  {
+    category: 'travel',
+    totalAmount: 2500,
+    transactionCount: 1,
+    archivedAt: new Date('2024-06-12T11:00:00Z')
+  }
+];
+
 db.users.insertMany(users);
 db.transactions.insertMany(transactions);
+db.transaction_archives.insertMany(transactionArchives);
 
-print(`Seed complete. Users: ${db.users.countDocuments()}, Transactions: ${db.transactions.countDocuments()}`);
+print(`Seed complete. Users: ${db.users.countDocuments()}, Transactions: ${db.transactions.countDocuments()}, Archives: ${db.transaction_archives.countDocuments()}`);
 MONGO

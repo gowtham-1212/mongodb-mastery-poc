@@ -1,5 +1,4 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
-
 import type { Db } from 'mongodb';
 
 declare module 'fastify' {
@@ -31,9 +30,14 @@ const joinsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           category: 1,
           status: 1,
           createdAt: 1,
+          //Create user object menthod user:{name: nameValue, email: emailValue, accountType: "accountTypeValue"}
           'user.name': 1,
           'user.email': 1,
-          'user.accountType': 1
+          'user.accountType': 1,
+            // flatten user object | without creating user object, inserted user objects   
+          userEmail: '$user.email',
+          userName: '$user.name',
+          userAccountType: '$user.accountType'
         }
       }
     ];

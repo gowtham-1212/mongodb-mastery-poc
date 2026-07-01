@@ -32,6 +32,11 @@ const shapingRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           totalWithTax: { $add: ['$amount', { $multiply: ['$amount', '$taxRate'] }] }
         }
       },
+      //accessing addFields taxAmount filed in next stage.
+      {$addFields: {
+        stageTotalWithTax: {$add: ['$amount', '$taxAmount']}
+        }
+      },
       {
         $project: {
           userId: 1,
@@ -41,6 +46,7 @@ const shapingRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           taxRate: 1,
           taxAmount: 1,
           totalWithTax: 1,
+          stageTotalWithTax: 1,
           createdAt: 1
         }
       }

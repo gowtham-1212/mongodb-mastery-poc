@@ -9,6 +9,7 @@ import joinsRoutes from './routes/relational-joins';
 import shapingRoutes from './routes/data-shaping';
 import facetsRoutes from './routes/faceted-search';
 import archiveRoutes from './routes/data-archiving';
+import advancedRoutes from './routes/advanced-aggregation';
 
 const app = Fastify({ logger: true });
 const PORT = Number(process.env.PORT || 3010);
@@ -32,6 +33,7 @@ const start = async () => {
     app.register(shapingRoutes, { prefix: '/api/data-shaping' });
     app.register(facetsRoutes, { prefix: '/api/facets' });
     app.register(archiveRoutes, { prefix: '/api/archive' });
+    app.register(advancedRoutes, { prefix: '/api/advanced' });
 
     app.get('/health', async () => ({
       status: 'ok',
