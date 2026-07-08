@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # CONFIG SERVERS (3-Node Replica Set)
+  # Stores metadata mapping chunks of data to specific shards
+  # ==========================================
+  cfg1:
+    image: mongo:latest
+    command: mongod --configsvr --replSet cfgReplSet --port 27017 --bind_ip_all
+    ports: ["27019:27017"]
+  cfg2:
+    image: mongo:latest
+    command: mongod --configsvr --replSet cfgReplSet --port 27017 --bind_ip_all
+  cfg3:
+    image: mongo:latest
+    command: mongod --configsvr --replSet cfgReplSet --port 27017 --bind_ip_all
+
+  # ==========================================
+  # SHARD 1 (3-Node Replica Set)
+  # ==========================================
+  shard1-node1:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27017 --bind_ip_all
+    ports: ["27020:27017"]
+  shard1-node2:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27017 --bind_ip_all
+  shard1-node3:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27017 --bind_ip_all
+
+  # ==========================================
+  # SHARD 2 (3-Node Replica Set)
+  # ==========================================
+  shard2-node1:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard2ReplSet --port 27017 --bind_ip_all
+    ports: ["27021:27017"]
+  shard2-node2:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard2ReplSet --port 27017 --bind_ip_all
+  shard2-node3:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard2ReplSet --port 27017 --bind_ip_all
+
+  # ==========================================
+  # SHARD 3 (3-Node Replica Set)
+  # ==========================================
+  shard3-node1:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard3ReplSet --port 27017 --bind_ip_all
+    ports: ["27022:27017"]
+  shard3-node2:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard3ReplSet --port 27017 --bind_ip_all
+  shard3-node3:
+    image: mongo:latest
+    command: mongod --shardsvr --replSet shard3ReplSet --port 27017 --bind_ip_all
+
+  # ==========================================
+  # MONGOS (Query Router)
+  # The ONLY node your Node.js application connects to.
+  # ==========================================
+  mongos:
+    image: mongo:latest
+    depends_on:
+      - cfg1
+      - cfg2
+      - cfg3
+    command: mongos --configdb cfgReplSet/cfg1:27017,cfg2:27017,cfg3:27017 --port 27017 --bind_ip_all
+    ports:
+      - "27017:27017" # Application connects here on localhost:27017
