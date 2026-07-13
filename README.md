@@ -2,13 +2,14 @@
 
 ## 🏗 Architectural Matrix & Framework Selection
 
-This repository is designed to master MongoDB through three distinct architectural lenses, each paired with a Node.js framework that complements the specific database use case.
+This repository is designed to master MongoDB through four distinct architectural lenses, each paired with a Node.js framework that complements the specific database use case.
 
 | Project | Framework | MongoDB Interface | Focus Area | Rationale |
 |:---|:---|:---|:---|:---|
 | **01-Basic-CRUD** | Express.js | Mongoose | Fundamental Operators | Unopinionated simplicity for isolating core driver operations. |
 | **02-Aggregation** | Fastify.js | Native Driver | Analytical Pipelines | High-performance routing and JSON schema validation for heavy data transformations. |
-| **03-Indexing** | NestJS | Mongoose | Performance & Optimization | Strict TS architecture and DI for enterprise-level schema design and profiling. |
+| **03-Indexing** | NestJS | Native Driver | Performance & Optimization | Strict TS architecture and DI for enterprise-level schema design and profiling. |
+| **06-Vector-Search** | Express.js + Axios | Native Driver + API | AI/ML & Semantic Search | RESTful simplicity for integrating embeddings, multimodal search (text-to-text, text-to-image, image-to-text). |
 
 ---
 
@@ -65,6 +66,7 @@ graph TD
 - [ ] **Project 01**: Express.js - CRUD & Inbuilt Operators
 - [ ] **Project 02**: Fastify.js - Advanced Aggregation Framework
 - [ ] **Project 03**: NestJS - Indexing, Optimization & Profiling
+- [ ] **Project 06**: Express.js + Axios - Vector Search Integration
 
 ## Check Mongodb index in mongo shell
 ### In MongoDB Shell (mongosh)
