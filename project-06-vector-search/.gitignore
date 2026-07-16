@@ -1,0 +1,20 @@
+# Dependency
+node_modules/
+dist/
+build/
+*.log
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+.mongo-data/
+
+# OS
+.DS_Store
+Thumbs.db
