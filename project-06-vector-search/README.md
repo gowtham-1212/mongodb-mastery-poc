@@ -123,6 +123,8 @@ curl -X POST http://localhost:3021/api/vector/embeddings/generate \
     "text": "hello world"
   }'
 
+```
+
 Architecture
 Vector Search Flow:
 
@@ -168,13 +170,14 @@ graph TD
     classDef mongo fill:#cfc,stroke:#333,stroke-width:2px;
     class C cloudinary;
     class G mongo;
-
+```
 ### Image-to-Image Search
 
 **Use Case:**  A user uploads a query image, and the system returns visually and conceptually similar images stored in the database.
 
 **Data Flow:**
 
+```mermaid
 graph TD
     A[Client: Upload Query Image] --> B[Server: Multer Middleware]
     B --> C[Cloudinary: Google Auto-Tagging]
@@ -188,3 +191,72 @@ graph TD
     classDef mongo fill:#cfc,stroke:#333,stroke-width:2px;
     class C cloudinary;
     class G mongo;
+```
+**Vector Embeddings: The Foundation** 
+
+Before diving into the search algorithms, it's essential to understand what is being searched. Vector search operates on vector embeddings—high-dimensional arrays of numbers (e.g., a 1536-dimensional array) that represent the semantic meaning of data (text, images, audio). 
+
+When you query the database, your query (e.g., "fast sports car") is converted into a vector by an embedding model. The database's job is to find the vectors in your collection that are physically closest to your query vector in that high-dimensional space. Distance metrics like Cosine Similarity or Dot Product determine "closeness" (similarity).
+
+**Approximate Nearest Neighbor (ANN) using HNSW**
+
+Approximate Nearest Neighbor (ANN) is the algorithm designed for speed and scale. It trades a tiny amount of accuracy (exactness) for massive performance gains, enabling sub-50ms latency across millions or billions of vectors.
+MongoDB Vector Search uses the Hierarchical Navigable Small World (HNSW) algorithm to perform ANN searches.
+
+## How HNSW Works Internally
+Imagine trying to find a specific house in a sprawling, unfamiliar city.
+ - Without a map (Brute Force): You check every single street.
+ - With HNSW: You start on a highway, take an exit to a main road, turn onto a neighborhood street, and finally navigate to the exact address.
+ 
+## HNSW builds a multi-layered graph during indexing:
+ - The Base Layer (Layer 0): Contains every single vector in your collection. Each vector is connected (via "edges") to a few of its closest neighbors.
+ - Upper Layers (Layer 1, Layer 2, etc.): These layers act as "highways." As you go up, fewer and fewer vectors are included, and the connections between them span much larger distances across the vector space.
+ 
+ **The ANN / HNSW Query Execution Flow**
+ When a $vectorSearch ANN query is executed, MongoDB traverses this graph:Entry Point: 
+ - The search begins at the very top layer, starting at a pre-defined entry node.
+ - Greedy Routing Downward: It looks at the connected neighbors in the current layer and moves to the node that is closest to the query vector. It repeats this until it can't get any closer on that layer, then it drops down to the layer below.
+ - Local Search at the Base Layer: Once it reaches Layer 0 (which contains all vectors), it explores the neighborhood around the closest point found so far.
+ - The numCandidates Parameter: This is crucial. It tells the algorithm how many candidate neighbors to keep in memory while searching Layer 0.
+   - A high numCandidates (e.g., 200) means it explores further into the local neighborhood, increasing accuracy (recall) but taking slightly longer. 
+   - A low numCandidates (e.g., 20) makes it extremely fast but risks missing the true closest neighbor:
+ - Final Sort: The final candidate list is sorted by exact distance, and the top limit vectors are returned to the user.
+
+```mermaid
+ graph TD
+    A[Start Search: Query Vector] --> B[Enter HNSW Graph at Top Layer]
+    B --> C{Find closest neighbor in current layer}
+    C -->|Closer neighbor found| C
+    C -->|No closer neighbor| D{Is this Layer 0?}
+    D -->|No| E[Drop to Layer Below]
+    E --> C
+    D -->|Yes| F[Local Search in Layer 0]
+    F -->|Explore 'numCandidates' neighbors| G[Calculate exact distance for candidates]
+    G --> H[Sort candidates by distance]
+    H --> I[Return top 'limit' vectors]
+
+    classDef graphNode fill:#d4e1f9,stroke:#333,stroke-width:2px;
+    class B,C,D,E,F graphNode;
+```
+3. Exact Nearest Neighbor (ENN)Exact Nearest Neighbor (ENN) is the brute-force approach. It prioritizes absolute precision (perfect recall) over query speed.Introduced to MongoDB Atlas Vector Search as an option within the $vectorSearch stage (using exact: true), ENN bypasses the HNSW graph entirely.  
+
+How ENN Works InternallyThe mechanics of ENN are straightforward but computationally expensive:Full Sequential Scan: The database takes your query vector and mathematically compares it against every single vector in the specified collection (or the subset of vectors that passed a pre-filter).  Distance Calculation: It computes the exact distance (e.g., dot product) for every pair.Sort and Limit: It sorts the entire dataset by that distance and returns the top limit results.
+
+## The ENN Query Execution Flow
+
+```mermaid
+graph TD
+    A[Start Search: Query Vector] --> B{Pre-filter applied?}
+    B -->|Yes| C[Apply standard MongoDB filters first]
+    B -->|No| D[Target all documents in collection]
+    C --> D
+    D --> E[Calculate distance against Document 1]
+    D --> F[Calculate distance against Document 2]
+    D --> G[...]
+    D --> H[Calculate distance against Document N]
+    E & F & G & H --> I[Sort all calculated distances]
+    I --> J[Return top 'limit' exact vectors]
+
+    classDef exactNode fill:#f9d4d4,stroke:#333,stroke-width:2px;
+    class E,F,G,H,I exactNode;
+```
