@@ -6,7 +6,8 @@
   "workspaces": [
     "project-01-basic-crud",
     "project-02-aggregation",
-    "project-03-indexing"
+    "project-03-indexing",
+    "project-07-time-series"
   ],
   "scripts": {
     "setup": "npm install && npm run bootstrap",
