@@ -1,12 +1,60 @@
-import { env, pipeline } from '@xenova/transformers';
+import { env, pipeline, RawImage } from '@xenova/transformers';
 import { Binary } from 'mongodb';
 import * as fs from 'fs';
 import * as path from 'path';
+import sharp from 'sharp';
 
 // Configuration - Allow remote models on first run to download
 env.allowLocalModels = true;
 env.allowRemoteModels = true; // ✅ Allow downloading on first run
 env.cacheDir = path.join(process.cwd(), 'models'); // Store in ./models directory
+
+// Optimize Transformers.js for Node
+env.localModelPath = './models';
+env.backends.onnx.wasm.numThreads = 1;
+
+class VisionPipeline {
+  static instance: any = null;
+  
+  static async getInstance() {
+    if (this.instance === null) {
+      console.log('⏳ Loading local CLIP Vision model... (This takes a moment on first run)');
+      // The image-feature-extraction pipeline converts pixels into vectors
+      this.instance = await pipeline('image-feature-extraction', 'Xenova/clip-vit-base-patch32');
+    }
+    return this.instance;
+  }
+}
+
+/**
+ * Converts a physical image file into a 512-dimension vector using Sharp + CLIP
+ */
+export async function generateLocalImageEmbedding(filePath: string): Promise<number[]> {
+  // 1. Load the model
+  const extractor = await VisionPipeline.getInstance();
+
+  // 2. Use Sharp to read, resize (CLIP expects 224x224), and strip alpha channels
+  const image = sharp(filePath)
+    .resize(224, 224, { fit: 'cover' })
+    .removeAlpha(); // AI models need 3 channels (RGB), not 4 (RGBA)
+
+  // 3. Extract the raw pixel buffers
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+
+  // 4. Wrap it in Xenova's RawImage class
+  const rawImage = new RawImage(
+    new Uint8ClampedArray(data), 
+    info.width, 
+    info.height, 
+    info.channels
+  );
+
+  // 5. Generate the mathematical embedding!
+  const output = await extractor(rawImage);
+  
+  // Return as a plain JavaScript array (512 dimensions)
+  return Array.from(output.data);
+}
 
 // Ensure models directory exists
 const modelsDir = env.cacheDir as string;

@@ -9,6 +9,120 @@ import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
 const router = express.Router();
 
+// Because CLIP outputs a different shape of math than MiniLM, you must create a new index in Atlas on the clip_images collection.
+// Collection: clip_images
+// Index Name: clip_vision_index
+// JSON
+// {
+//   "fields": [
+//     {
+//       "type": "vector",
+//       "path": "embedding",
+//       "numDimensions": 512,
+//       "similarity": "dotProduct"
+//     }
+//   ]
+// }
+
+/**
+ * POST /api/vector/clip/add
+ * Upload an image, embed via local CPU (CLIP), and save to DB
+ */
+router.post('/clip/add', upload.single('file'), async (req: Request, res: Response) => {
+  let uploadedFilePath: string | null = null;
+
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Image file required' });
+    uploadedFilePath = req.file.path;
+    const { title } = req.body;
+
+    console.log(`\n🖼️ Embedding new image via CLIP: "${title}"`);
+
+    // Extract vector directly from the image file!
+    const embeddingArray = await generateLocalImageEmbedding(uploadedFilePath);
+
+    const db = getDatabase(); // Your MongoDB connection logic
+    const collection = db.collection('clip_images');
+
+    // Save the file locally so we can view it later, instead of Cloudinary
+    const finalFilename = `${Date.now()}-${req.file.originalname}`;
+    fs.renameSync(uploadedFilePath, path.join('uploads', finalFilename));
+
+    const result = await collection.insertOne({
+      title: title || 'Untitled',
+      filename: finalFilename,
+      embedding: embeddingArray,
+      created_at: new Date()
+    });
+
+    return res.status(201).json({
+      message: 'Image fully processed offline and embedded',
+      id: result.insertedId,
+      vector_size: embeddingArray.length // Will be 512
+    });
+
+  } catch (error) {
+    if (uploadedFilePath && fs.existsSync(uploadedFilePath)) fs.unlinkSync(uploadedFilePath);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+/**
+ * POST /api/vector/clip/search
+ * Find visually similar images using pure multimodal pixel embeddings
+ */
+router.post('/clip/search', upload.single('file'), async (req: Request, res: Response) => {
+  let uploadedFilePath: string | null = null;
+
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Query image required' });
+    uploadedFilePath = req.file.path;
+    const { limit = 5 } = req.body;
+
+    console.log(`\n🔍 Searching via local CLIP Vision...`);
+
+    // Convert query image directly to math
+    const queryEmbeddingArray = await generateLocalImageEmbedding(uploadedFilePath);
+
+    const db = getDatabase();
+    const collection = db.collection('clip_images');
+
+    const results = await collection.aggregate([
+      {
+        $vectorSearch: {
+          index: 'clip_vision_index', // Make sure you create this 512d index!
+          path: 'embedding',
+          queryVector: queryEmbeddingArray,
+          numCandidates: 100,
+          limit: Number(limit)
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          filename: 1,
+          score: { $meta: 'vectorSearchScore' }
+        }
+      }
+    ]).toArray();
+
+    // Clean up query file
+    if (fs.existsSync(uploadedFilePath)) fs.unlinkSync(uploadedFilePath);
+
+    return res.json({
+      results: results.map((doc: any) => ({
+        ...doc,
+        similarity_score: (doc.score * 100).toFixed(2) + '%'
+      }))
+    });
+
+  } catch (error) {
+    if (uploadedFilePath && fs.existsSync(uploadedFilePath)) fs.unlinkSync(uploadedFilePath);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 /**
  * Route: Image-to-Image Search
  * POST /api/vector/image-to-image/search
@@ -112,5 +226,7 @@ router.post('/image-to-image/search', upload.single('file'), async (req: Request
     res.status(500).json({ error: `Image search failed: ${error}` });
   }
 });
+
+
 
 export default router;

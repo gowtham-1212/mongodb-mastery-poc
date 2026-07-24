@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      # IPv4 Bindings
+      - "6333:6333" 
+      - "6334:6334"
+      # Explicit IPv6 Localhost (::1) Bindings
+      - "[::1]:6333:6333"
+      - "[::1]:6334:6334"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage

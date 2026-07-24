@@ -7,7 +7,8 @@
     "project-01-basic-crud",
     "project-02-aggregation",
     "project-03-indexing",
-    "project-07-time-series"
+    "project-07-time-series",
+    "project-08-qdrant-vector-db"
   ],
   "scripts": {
     "setup": "npm install && npm run bootstrap",
@@ -26,8 +27,11 @@
     "learning",
     "aggregation",
     "indexing",
-    "operators"
+    "operators"q
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "project-03-indexing": "^1.0.0"
+  }
 }
